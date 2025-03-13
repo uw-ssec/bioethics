@@ -11,12 +11,14 @@ def get_model(generation_model):
     
     if generation_model not in MODEL_INSTANCES:
 
-        MODEL_INSTANCES[generation_model] = LanguageModel(model_name=generation_model)
+        MODEL_INSTANCES[generation_model] = LanguageModel(model_name=generation_model, generation_config={"max_new_tokens": 1000})
         MODEL_INSTANCES[generation_model].load_language_model(quantization="8bit")
         MODEL_INSTANCES[generation_model].load_hg_pipeline()
     return MODEL_INSTANCES[generation_model]
 
 def generate_answer(prompt, generation_model):
+    print(prompt)
     model = get_model(generation_model)
     response = model.inference(prompt)
+    print(response)
     return {"answer": response, "status_code": 200} 

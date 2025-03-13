@@ -25,25 +25,32 @@ class LanguageModel():
         self.hg_pipeline = None
     
     def load_language_model(self,
-                            quantization: Literal["8bit", "4bit"]
+                            quantization: Literal["8bit", "4bit", None] = None
                             ):
          # Define the quantization config
         if quantization == "8bit":
             quantization_config = BitsAndBytesConfig(load_in_8bit=True)
         elif quantization == "4bit":
             quantization_config = BitsAndBytesConfig(load_in_4bit=True)
-        else :
+        else:
             quantization_config = None
        
+        hf_token = os.getenv("HF_TOKEN")
+
         # Load tokenizer
-        tokenizer = AutoTokenizer.from_pretrained(self.model_name, cache_dir=self.model_path)
+        tokenizer = AutoTokenizer.from_pretrained(
+            self.model_name, 
+            cache_dir=self.model_path,
+            use_auth_token=hf_token
+        )
 
         # Load model with quantization
         model = AutoModelForCausalLM.from_pretrained(
             self.model_name,
             cache_dir=self.model_path,
             device_map="auto",
-            quantization_config=quantization_config
+            quantization_config=quantization_config,
+            use_auth_token=hf_token
         )
         self.llm = model
         self.tokenizer = tokenizer
@@ -66,7 +73,9 @@ class LanguageModel():
     
     def inference(self, prompt):
         if self.hg_pipeline:
+            print(f"I reached here {prompt}")
             response = self.hg_pipeline.invoke(prompt)
+            print("The response is", response)
             return response
         else:
             logging.info("Model and tokenizer not loaded. Cannot create pipeline.")
