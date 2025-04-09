@@ -74,7 +74,7 @@ if query := st.chat_input("Your question:"):
             st.error(f"❌ Retrieval API failed: {str(e)}")
 
     # Show retrieved documents immediately
-    retrieved_text = "\n\n".join(doc["page_content"][:500] for doc in retrieved_docs)
+    retrieved_text = "\n\n".join(doc["page_content"] for doc in retrieved_docs)
     if retrieved_docs:
         with st.chat_message("assistant"):
             st.markdown("### Retrieved Document Chunks:")

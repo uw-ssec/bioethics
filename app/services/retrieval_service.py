@@ -29,7 +29,7 @@ def perform_retrieval(documents, query, existing_collection, existing_qdrant_pat
     response_data = [
         {
             "metadata": doc.metadata,
-            "page_content": doc.page_content[:500]  # Limit preview size
+            "page_content": doc.page_content  # Limit preview size
         }
         for doc in relevant_docs
     ]
