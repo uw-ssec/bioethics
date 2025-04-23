@@ -12,7 +12,7 @@ Ensure you have the following installed on your system:
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/your-repo/bioethics.git
+   git clone https://github.com/uw-ssec/bioethics.git
    cd bioethics
    ```
 
@@ -22,8 +22,8 @@ Ensure you have the following installed on your system:
    ```
 
 3. Access the services:
-   - FastAPI: [http://localhost:8000](http://localhost:8000)
-   - Streamlit: [http://localhost:8501](http://localhost:8501)
+   - Backend: [http://localhost:8000](http://localhost:8000)
+   - Streamlit (Interface): [http://localhost:8501](http://localhost:8501)
 
 4. To stop the containers, press `Ctrl+C` in the terminal or run:
    ```bash
