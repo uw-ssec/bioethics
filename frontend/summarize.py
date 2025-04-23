@@ -45,7 +45,7 @@ def summary_prompt(context: str) -> str:
     Headings for the summary:
     - What was the research about?
     - How was the research done?
-    - What did the researchers learn?(Answer this in detailed bullet points)
+    - What did the researchers learn? (Answer this in detailed bullet points)
     - What was new and innovative about the studies?
     - What do the findings mean?
     - What's next?
@@ -74,9 +74,10 @@ def process_uploaded_files(uploaded_files):
     documents = []
     for file in uploaded_files:
         # Save the file temporarily so PyMuPDFLoader can load it
-        with open(file.name, "wb") as f:
+        unique_filename = f"{uuid.uuid4()}_{file.name}"
+        with open(unique_filename, "wb") as f:
             f.write(file.getbuffer())
-        loader = PyMuPDFLoader(file.name)
+        loader = PyMuPDFLoader(unique_filename)
         pages = loader.load()
         for page in pages:
             documents.append({

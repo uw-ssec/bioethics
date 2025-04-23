@@ -3,6 +3,9 @@ import requests
 import json
 import time
 from langchain.document_loaders import PyMuPDFLoader
+import urllib3
+from io import BytesIO
+from docx import Document
 from config import (
     API_BASE_URL, 
     EMBEDDING_MODEL, 
@@ -14,10 +17,100 @@ from config import (
     format_prompt
 )
 
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+# Initialize session state for messages if not exists
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+
+# Predefined templates based on PR #3
+TEMPLATES = {
+    "Research Summary (Default)": """
+    You are a medical science expert. Summarize the below papers using a few sentences or bullet points in lay language at a 6th grade reading level, while answering the given question:
+
+    {context}
+
+    Question: {question}
+    """,
+    
+    "Detailed Research Report": """
+    You are a medical science expert and have to write a report on the below papers:
+    
+    {context}
+    
+    Write a summary to communicate the research to study participants in a few sentences for each section. Write in lay language at a 6th grade reading level.
+
+    Headings for the summary:
+    - What was the research about?
+    - How was the research done?
+    - What did the researchers learn? (Answer this in detailed bullet points)
+    - What was new and innovative about the studies?
+    - What do the findings mean?
+    - What's next?
+
+    Question: {question}
+    """,
+    
+    "Technical Analysis": """
+    As a medical researcher, provide a detailed technical analysis of the following papers, focusing on methodology and results:
+
+    {context}
+
+    Specific aspects to address:
+    1. Research methodology
+    2. Statistical significance
+    3. Key findings
+    4. Limitations
+    5. Future research directions
+
+    Question: {question}
+    """,
+    
+    "Patient Communication": """
+    As a healthcare provider, explain the following research in simple terms that patients can understand:
+
+    {context}
+
+    Please cover:
+    - What this means for patients
+    - Practical implications
+    - What patients should know
+    - Next steps
+
+    Question: {question}
+    """,
+    
+    "Policy Brief": """
+    Synthesize the following research into a policy brief format:
+
+    {context}
+
+    Structure:
+    1. Executive Summary
+    2. Key Findings
+    3. Policy Implications
+    4. Recommendations
+    5. Implementation Considerations
+
+    Question: {question}
+    """
+}
+
 st.title("RAG Chatbot")
 
-# Initialize session state
-st.session_state.messages = []
+# Template selection
+selected_template = st.selectbox(
+    "Choose a prompt template",
+    list(TEMPLATES.keys()),
+    index=0
+)
+
+# Show and allow editing of the selected template
+user_template = st.text_area(
+    "Customize template (optional)",
+    value=TEMPLATES[selected_template],
+    height=250
+)
 
 # Display chat history
 for message in st.session_state.messages:
@@ -49,6 +142,36 @@ def process_uploaded_files(uploaded_files):
 
     return documents
 
+# Function to call the backend retrieval API
+def retrieve_response(query, documents):
+    """Call the backend retrieval API."""
+    try:
+        response = requests.post(
+            f"{API_BASE_URL}/retrieve/",
+            json={"query": query, "documents": documents, "embedding_model": "default_model"},
+            verify=False
+        )
+        response.raise_for_status()
+        return response.json()
+    except requests.RequestException as e:
+        st.error(f"❌ Retrieval API failed: {str(e)}")
+        return {"retrieved_docs": []}
+
+# Function to call the backend generation API
+def generate_response(prompt):
+    """Call the backend generation API."""
+    try:
+        response = requests.post(
+            f"{API_BASE_URL}/generate/",
+            json={"prompt": prompt},
+            verify=False
+        )
+        response.raise_for_status()
+        return response.json()
+    except requests.RequestException as e:
+        st.error(f"❌ Generation API failed: {str(e)}")
+        return {"answer": "⚠️ Failed to generate response."}
+
 # Process PDFs only if uploaded
 documents = process_uploaded_files(uploaded_files) if uploaded_files else []
 
@@ -59,19 +182,7 @@ if query := st.chat_input("Your question:"):
         st.markdown(query)
 
     with st.spinner("Retrieving relevant documents..."):
-        try:
-            retrieve_payload = {
-                "documents": documents,
-                "query": expand_query(query),
-                "existing_collection": EXISTING_COLLECTION,
-                "existing_qdrant_path": EXISTING_QDRANT_PATH,
-                "embedding_model": EMBEDDING_MODEL
-            }
-            retrieve_response = requests.post(f"{API_BASE_URL}/retrieve/", json=retrieve_payload)
-            retrieved_docs = retrieve_response.json().get("docs", []) if retrieve_response.status_code == 200 else []
-        except Exception as e:
-            retrieved_docs = []
-            st.error(f"❌ Retrieval API failed: {str(e)}")
+        retrieved_docs = retrieve_response(query, documents).get("retrieved_docs", [])
 
     # Show retrieved documents immediately
     retrieved_text = "\n\n".join(doc["page_content"] for doc in retrieved_docs)
@@ -83,16 +194,12 @@ if query := st.chat_input("Your question:"):
 
     # Generate response using retrieved documents as context
     with st.spinner("Generating response..."):
-        try:
-            generate_payload = {
-                "prompt": format_prompt(retrieved_text, query),
-                "generation_model": GENERATION_MODEL
-            }
-            generate_response = requests.post(f"{API_BASE_URL}/generate/", json=generate_payload)
-            generated_answer = generate_response.json().get("answer", "") if generate_response.status_code == 200 else "⚠️ Failed to generate response."
-        except Exception as e:
-            generated_answer = "⚠️ Failed to generate response."
-            st.error(f"❌ Generation API failed: {str(e)}")
+        formatted_prompt = user_template.format(
+            context=retrieved_text,
+            question=query
+        )
+        generate_response_data = generate_response(formatted_prompt)
+        generated_answer = generate_response_data.get("answer", "⚠️ Failed to generate response.")
 
     # Display AI-generated response
     assistant_message = {
