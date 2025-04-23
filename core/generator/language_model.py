@@ -73,9 +73,7 @@ class LanguageModel():
     
     def inference(self, prompt):
         if self.hg_pipeline:
-            print(f"I reached here {prompt}")
             response = self.hg_pipeline.invoke(prompt)
-            print("The response is", response)
             return response
         else:
             logging.info("Model and tokenizer not loaded. Cannot create pipeline.")

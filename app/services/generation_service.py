@@ -17,8 +17,6 @@ def get_model(generation_model):
     return MODEL_INSTANCES[generation_model]
 
 def generate_answer(prompt, generation_model):
-    print(prompt)
     model = get_model(generation_model)
     response = model.inference(prompt)
-    print(response)
     return {"answer": response, "status_code": 200} 
