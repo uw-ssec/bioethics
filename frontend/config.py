@@ -19,7 +19,6 @@ PROMPT_TEMPLATES = {
 
     Question: {question}
     """,
-    
     "Detailed Research Report": """
     You are a medical science expert and have to write a report on the below papers:
     
@@ -37,7 +36,6 @@ PROMPT_TEMPLATES = {
 
     Question: {question}
     """,
-    
     "Technical Analysis": """
     As a medical researcher, provide a detailed technical analysis of the following papers, focusing on methodology and results:
 
@@ -52,7 +50,6 @@ PROMPT_TEMPLATES = {
 
     Question: {question}
     """,
-    
     "Patient Communication": """
     As a healthcare provider, explain the following research in simple terms that patients can understand:
 
@@ -66,7 +63,6 @@ PROMPT_TEMPLATES = {
 
     Question: {question}
     """,
-    
     "Policy Brief": """
     Synthesize the following research into a policy brief format:
 
@@ -80,5 +76,5 @@ PROMPT_TEMPLATES = {
     5. Implementation Considerations
 
     Question: {question}
-    """
+    """,
 }

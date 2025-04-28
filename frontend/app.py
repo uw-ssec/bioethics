@@ -9,15 +9,12 @@ from config import (
     GENERATION_MODEL,
     EXISTING_COLLECTION,
     EXISTING_QDRANT_PATH,
-    PROMPT_TEMPLATES
+    PROMPT_TEMPLATES,
 )
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-text_splitter = RecursiveCharacterTextSplitter(
-    chunk_size=1000, 
-    chunk_overlap=200
-)
+text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
 
 # Initialize session state for messages if not exists
 if "messages" not in st.session_state:
@@ -27,18 +24,12 @@ st.title("Bioethics RAG Chatbot")
 
 # Template selection with "No Template" as the default option
 template_options = ["No Template"] + list(PROMPT_TEMPLATES.keys())
-selected_template = st.selectbox(
-    "Choose a prompt template",
-    template_options,
-    index=0
-)
+selected_template = st.selectbox("Choose a prompt template", template_options, index=0)
 
 # Show text area only if a template is selected
 if selected_template != "No Template":
     user_template = st.text_area(
-        "Customize template",
-        value=PROMPT_TEMPLATES[selected_template],
-        height=250
+        "Customize template", value=PROMPT_TEMPLATES[selected_template], height=250
     )
 else:
     # When "No Template" is selected, no text area is shown
@@ -55,7 +46,10 @@ for message in st.session_state.messages:
                 st.markdown(f"- {chunk}")
 
 # File uploader for documents
-uploaded_files = st.file_uploader("Attach documents (PDFs)", type=["pdf"], accept_multiple_files=True)
+uploaded_files = st.file_uploader(
+    "Attach documents (PDFs)", type=["pdf"], accept_multiple_files=True
+)
+
 
 # Function to process uploaded PDFs
 def process_uploaded_files(uploaded_files):
@@ -70,12 +64,10 @@ def process_uploaded_files(uploaded_files):
         for page in pages:
             chunks = text_splitter.split_text(page.page_content)
             for i, chunk in enumerate(chunks):
-                documents.append({
-                    "page_content": chunk,
-                    "metadata": {**page.metadata, "chunk": i}
-                })
+                documents.append({"page_content": chunk, "metadata": {**page.metadata, "chunk": i}})
 
     return documents
+
 
 # Function to call the backend retrieval API
 def retrieve_response(query, documents):
@@ -84,12 +76,12 @@ def retrieve_response(query, documents):
         response = requests.post(
             f"{API_BASE_URL}/retrieve/",
             json={
-                "query": query, 
-                "documents": documents, 
+                "query": query,
+                "documents": documents,
                 "embedding_model": EMBEDDING_MODEL,
                 "existing_collection": EXISTING_COLLECTION,
-                "existing_qdrant_path": EXISTING_QDRANT_PATH
-            }
+                "existing_qdrant_path": EXISTING_QDRANT_PATH,
+            },
         )
         response.raise_for_status()
         return response.json()
@@ -97,22 +89,21 @@ def retrieve_response(query, documents):
         st.error(f"❌ Retrieval API failed: {str(e)}")
         return {"docs": []}
 
+
 # Function to call the backend generation API
 def generate_response(prompt):
     """Call the backend generation API."""
     try:
         response = requests.post(
             f"{API_BASE_URL}/generate/",
-            json={
-                "prompt": prompt,
-                "generation_model": GENERATION_MODEL
-            }
+            json={"prompt": prompt, "generation_model": GENERATION_MODEL},
         )
         response.raise_for_status()
         return response.json()
     except requests.RequestException as e:
         st.error(f"❌ Generation API failed: {str(e)}")
         return {"answer": "⚠️ Failed to generate response."}
+
 
 # Process PDFs only if uploaded
 documents = process_uploaded_files(uploaded_files) if uploaded_files else []
@@ -145,10 +136,7 @@ if query := st.chat_input("Your question:"):
             formatted_prompt = query
         else:
             # Otherwise use the template (either selected or custom)
-            formatted_prompt = user_template.format(
-                context=retrieved_text,
-                question=query
-            )
+            formatted_prompt = user_template.format(context=retrieved_text, question=query)
         generate_response_data = generate_response(formatted_prompt)
         generated_answer = generate_response_data.get("answer", "⚠️ Failed to generate response.")
 
@@ -156,7 +144,7 @@ if query := st.chat_input("Your question:"):
     assistant_message = {
         "role": "assistant",
         "content": generated_answer,
-        "chunks": [doc["page_content"][:500] for doc in retrieved_docs]
+        "chunks": [doc["page_content"][:500] for doc in retrieved_docs],
     }
     st.session_state.messages.append(assistant_message)
 

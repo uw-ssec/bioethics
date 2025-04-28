@@ -6,6 +6,7 @@ import traceback
 
 router = APIRouter()
 
+
 class RetrieveRequest(BaseModel):
     documents: Optional[List[Dict[str, Any]]] = []
     query: str
@@ -22,7 +23,7 @@ async def retrieve(request: RetrieveRequest):
             request.query,
             request.existing_collection,
             request.existing_qdrant_path,
-            request.embedding_model
+            request.embedding_model,
         )
         return result
     except Exception as e:
