@@ -1,5 +1,7 @@
-from langchain.schema import Document
+from __future__ import annotations
+
 from core.retriever.retriever import Retriever
+from langchain.schema import Document
 
 
 def json_to_document(json_data):

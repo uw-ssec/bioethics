@@ -1,5 +1,6 @@
+from __future__ import annotations
+
 import logging
-import traceback
 
 from core.generator.language_model import LanguageModel
 
@@ -17,24 +18,20 @@ def get_model(generation_model):
     """
     try:
         if generation_model not in MODEL_INSTANCES:
-            logger.info(f"Initializing model: {generation_model}")
             MODEL_INSTANCES[generation_model] = LanguageModel(
                 model_name=generation_model, generation_config={"max_new_tokens": 1024}
             )
             MODEL_INSTANCES[generation_model].load_language_model()
             # MODEL_INSTANCES[generation_model].load_language_model(quantization="8bit")
             MODEL_INSTANCES[generation_model].load_hg_pipeline()
-            logger.info(f"Model initialized successfully: {generation_model}")
         return MODEL_INSTANCES[generation_model]
     except Exception as e:
-        logger.error(f"Error initializing model {generation_model}: {e!s}")
-        logger.error(traceback.format_exc())
-        raise Exception(f"Failed to initialize model: {e!s}")
+        error_message = f"Failed to initialize model: {e!s}"
+        raise Exception(error_message) from e
 
 
 def generate_answer(prompt, generation_model):
     try:
-        logger.info(f"Generating answer with model: {generation_model}")
         model = get_model(generation_model)
 
         if not model.hg_pipeline:
@@ -49,6 +46,4 @@ def generate_answer(prompt, generation_model):
         logger.info("Successfully generated response")
         return {"answer": response, "status_code": 200}
     except Exception as e:
-        logger.error(f"Error generating answer: {e!s}")
-        logger.error(traceback.format_exc())
         return {"answer": "Failed to generate response", "error": str(e), "status_code": 500}

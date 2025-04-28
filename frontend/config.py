@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 # API Base URL
 API_BASE_URL = "http://localhost:8000/api"
 

@@ -1,9 +1,11 @@
+from __future__ import annotations
+
 import os
 
 from langchain_huggingface import HuggingFaceEmbeddings
 
 
-def get_embedding_model(model_name: str = None) -> HuggingFaceEmbeddings:
+def get_embedding_model(model_name: str | None = None) -> HuggingFaceEmbeddings:
     """
     Returns an instance of an embedding model.
 
@@ -24,4 +26,3 @@ def get_embedding_model(model_name: str = None) -> HuggingFaceEmbeddings:
 if __name__ == "__main__":
     # Quick test to verify that the embedding model loads.
     embedding = get_embedding_model()
-    print(f"Using embedding model: {embedding.model_name}")

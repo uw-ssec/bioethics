@@ -1,21 +1,24 @@
-from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
-import os
-from urllib.request import urlretrieve
+from __future__ import annotations
+
 import logging
+import os
+from pathlib import Path
 from typing import Literal
-from transformers import pipeline
+
 from langchain_community.llms import HuggingFacePipeline
-from langchain_huggingface import HuggingFaceEmbeddings
+from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig, pipeline
 
 
 class LanguageModel:
-    def __init__(self, model_name, generation_config={}):
+    def __init__(self, model_name, generation_config=None):
+        if generation_config is None:
+            generation_config = {}
         self.model_name = model_name
         self.generation_config = generation_config or {}
 
-        self.cache_path = os.path.join(os.path.dirname(__file__), "../../models")
-        os.makedirs(self.cache_path, exist_ok=True)
-        self.model_path = os.path.join(self.cache_path, self.model_name.replace("/", "_"))
+        self.cache_path = Path(__file__).parent.parent.parent / "models"
+        self.cache_path.mkdir(exist_ok=True)
+        self.model_path = str(self.cache_path / self.model_name.replace("/", "_"))
 
         self.llm = None
         self.tokenizer = None
@@ -62,12 +65,10 @@ class LanguageModel:
             self.hg_pipeline = HuggingFacePipeline(pipeline=pipe)
         else:
             logging.error("Model and tokenizer not loaded. Cannot create pipeline.")
-            return None
+            return
 
     def inference(self, prompt):
         if self.hg_pipeline:
-            response = self.hg_pipeline.invoke(prompt)
-            return response
-        else:
-            logging.info("Model and tokenizer not loaded. Cannot create pipeline.")
-            return None
+            return self.hg_pipeline.invoke(prompt)
+        logging.info("Model and tokenizer not loaded. Cannot create pipeline.")
+        return None
