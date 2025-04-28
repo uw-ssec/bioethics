@@ -9,27 +9,32 @@ def json_to_document(json_data):
     )
 
 def perform_retrieval(documents, query, existing_collection, existing_qdrant_path, embedding_model):
-    # Convert each JSON document to a LangChain Document object
-    if documents:
-        docs = [json_to_document(doc) for doc in documents]
+    # Early return if no retrieval sources available
+    if not documents and not (existing_collection and existing_qdrant_path):
+        return {
+            "docs": [], 
+            "status_code": 200, 
+            "message": "No documents or existing vector store provided for retrieval"
+        }
     
     # Instantiate the retriever with the provided embedding model
     retriever = Retriever(model_name=embedding_model)
     
-    # Create a vector store and retrieve relevant documents
+    # Set up the vector store
     if documents:
+        # Convert JSON documents to LangChain Document objects
+        docs = [json_to_document(doc) for doc in documents]
         retriever.create_vector_store(docs, collection_name="temp_collection")
-    elif existing_collection and existing_qdrant_path:
-        retriever.get_vector_store(qdrant_path=existing_qdrant_path, collection_name=existing_collection)
     else:
-        raise ValueError("No documents or existing vector store provided.")
-    relevant_docs = retriever.retrieve_docs(query)
+        # Use existing vector store
+        retriever.get_vector_store(qdrant_path=existing_qdrant_path, collection_name=existing_collection)
     
-    # Format the response with a limited preview of page content
+    # Retrieve and format documents
+    relevant_docs = retriever.retrieve_docs(query)
     response_data = [
         {
             "metadata": doc.metadata,
-            "page_content": doc.page_content  # Limit preview size
+            "page_content": doc.page_content
         }
         for doc in relevant_docs
     ]
