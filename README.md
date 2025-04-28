@@ -1,12 +1,11 @@
 # Bioethics Project
 
-This project provides tools and services for bioethics research and applications. The following instructions explain how to set up and run the project using Docker and Docker Compose.
+This project provides tools and services for bioethics research and applications. The following instructions explain how to set up and run the project using pixi.
 
 ## Prerequisites
 
 Ensure you have the following installed on your system:
-- [Docker](https://www.docker.com/)
-- [Docker Compose](https://docs.docker.com/compose/)
+- [pixi](https://pixi.sh) package manager
 
 ## Getting Started
 
@@ -16,31 +15,37 @@ Ensure you have the following installed on your system:
    cd bioethics
    ```
 
-2. Build and start the containers:
+2. Install dependencies:
    ```bash
-   docker-compose up --build
+   pixi install
    ```
 
-3. Access the services:
+3. Run the Server:
+   ```bash
+   pixi run server
+   ```
+
+4. Run the Interface (You might need to run it in another terminal):
+   ```bash
+   pixi run streamlit
+   ```
+
+5. Access the services:
    - Backend: [http://localhost:8000](http://localhost:8000)
    - Streamlit (Interface): [http://localhost:8501](http://localhost:8501)
 
-4. To stop the containers, press `Ctrl+C` in the terminal or run:
-   ```bash
-   docker-compose down
-   ```
+6. To stop the services, press `Ctrl+C` in the terminal.
 
 ## Customization
 
-- Modify the `docker-compose.yml` file to adjust service configurations.
-- Update the `Dockerfile` to include additional dependencies or changes.
+- Modify the pixi configuration files to adjust service configurations or dependencies.
 
 ## Troubleshooting
 
-- If you encounter permission issues, try running Docker commands with `sudo`.
 - Ensure no other services are using ports `8000` or `8501`.
+- If you encounter issues with pixi, refer to the [pixi documentation](https://pixi.sh).
 
-For further assistance, refer to the official [Docker documentation](https://docs.docker.com/).
+For further assistance, check the project issues section.
 
 ## Open source licensing
 
