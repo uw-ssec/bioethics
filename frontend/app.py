@@ -1,16 +1,20 @@
-import streamlit as st
+from __future__ import annotations
+
+from pathlib import Path
+
 import requests
-from langchain.document_loaders import PyMuPDFLoader
-from langchain.text_splitter import RecursiveCharacterTextSplitter
+import streamlit as st  # type: ignore[import]
 import urllib3
 from config import (
     API_BASE_URL,
     EMBEDDING_MODEL,
-    GENERATION_MODEL,
     EXISTING_COLLECTION,
     EXISTING_QDRANT_PATH,
+    GENERATION_MODEL,
     PROMPT_TEMPLATES,
 )
+from langchain.document_loaders import PyMuPDFLoader
+from langchain.text_splitter import RecursiveCharacterTextSplitter
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
@@ -23,7 +27,7 @@ if "messages" not in st.session_state:
 st.title("Bioethics RAG Chatbot")
 
 # Template selection with "No Template" as the default option
-template_options = ["No Template"] + list(PROMPT_TEMPLATES.keys())
+template_options = ["No Template", *list(PROMPT_TEMPLATES.keys())]
 selected_template = st.selectbox("Choose a prompt template", template_options, index=0)
 
 # Show text area only if a template is selected
@@ -56,7 +60,7 @@ def process_uploaded_files(uploaded_files):
     """Reads uploaded PDF files and extracts text + metadata."""
     documents = []
     for file in uploaded_files:
-        with open(file.name, "wb") as f:
+        with Path(file.name).open("wb") as f:
             f.write(file.getbuffer())
         loader = PyMuPDFLoader(file.name)  # Load PDF
         pages = loader.load()
@@ -86,7 +90,7 @@ def retrieve_response(query, documents):
         response.raise_for_status()
         return response.json()
     except requests.RequestException as e:
-        st.error(f"❌ Retrieval API failed: {str(e)}")
+        st.error(f"❌ Retrieval API failed: {e!s}")
         return {"docs": []}
 
 
@@ -101,7 +105,7 @@ def generate_response(prompt):
         response.raise_for_status()
         return response.json()
     except requests.RequestException as e:
-        st.error(f"❌ Generation API failed: {str(e)}")
+        st.error(f"❌ Generation API failed: {e!s}")
         return {"answer": "⚠️ Failed to generate response."}
 
 
