@@ -23,7 +23,7 @@ text_splitter = RecursiveCharacterTextSplitter(
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-st.title("RAG Chatbot")
+st.title("Bioethics RAG Chatbot")
 
 # Template selection with "No Template" as the default option
 template_options = ["No Template"] + list(PROMPT_TEMPLATES.keys())
