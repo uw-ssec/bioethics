@@ -41,7 +41,7 @@ class LanguageModel():
         tokenizer = AutoTokenizer.from_pretrained(
             self.model_name, 
             cache_dir=self.model_path,
-            use_auth_token=hf_token
+            token=hf_token
         )
 
         # Load model with quantization
@@ -50,7 +50,7 @@ class LanguageModel():
             cache_dir=self.model_path,
             device_map="auto",
             quantization_config=quantization_config,
-            use_auth_token=hf_token
+            token=hf_token
         )
         self.llm = model
         self.tokenizer = tokenizer
