@@ -19,6 +19,12 @@ cmd = "uvicorn app.main:app --host 0.0.0.0 --port 8000"
 [dependencies]
 python = "3.11.*"
 pixi-kernel = ">=0.4.0,<0.5"
+pre-commit = ">=4.1.0,<5"
+
+[tasks]
+precommit-install = "pre-commit install"
+precommit-all = "pre-commit run --all-files"
+precommit = "pre-commit run"
 
 [feature.frontend.dependencies]
 numpy = ">=1.21.0,<2"
