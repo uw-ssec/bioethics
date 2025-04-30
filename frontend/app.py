@@ -73,9 +73,19 @@ def process_uploaded_files(uploaded_files):
     return documents
 
 
-# Function to call the backend retrieval API
 def retrieve_response(query, documents):
-    """Call the backend retrieval API."""
+    """
+    Calls the backend retrieval API to fetch relevant documents based on the query.
+
+    Parameters:
+        query (str): The user's question or search query
+        documents (list): List of PDF dicts with page_content and metadata
+
+    Returns:
+        dict: JSON response from the API containing:
+            - docs: List of retrieved document chunks
+            - status_code: HTTP status code of the response
+    """
     try:
         response = requests.post(
             f"{API_BASE_URL}/retrieve/",
@@ -94,9 +104,19 @@ def retrieve_response(query, documents):
         return {"docs": []}
 
 
-# Function to call the backend generation API
 def generate_response(prompt):
-    """Call the backend generation API."""
+    """
+    Calls the backend generation API to produce a generated answer to the prompt.
+
+    Parameters:
+        prompt (str): a formatted prompt ready to send to the generation model
+        generation_model (str): The model to use for text generation
+
+    Returns:
+        dict: JSON response from the API containing:
+            - answer: The generated text response
+            - status_code: HTTP status code of the response
+    """
     try:
         response = requests.post(
             f"{API_BASE_URL}/generate/",
@@ -142,7 +162,11 @@ if query := st.chat_input("Your question:"):
             # Otherwise use the template (either selected or custom)
             formatted_prompt = user_template.format(context=retrieved_text, question=query)
         generate_response_data = generate_response(formatted_prompt)
-        generated_answer = generate_response_data.get("answer", "⚠️ Failed to generate response.")
+        if "answer" in generate_response_data:
+            generated_answer = generate_response_data["answer"]
+        else:
+            st.error("⚠️ Unable to generate a response. Please try again later.")
+            generated_answer = "⚠️ Failed to generate response."
 
     # Display AI-generated response
     assistant_message = {

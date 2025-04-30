@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+import logging
 import shutil
 from pathlib import Path
+from typing import Any
 
-from core.embeddings.embedding_model import get_embedding_model
 from langchain_qdrant import Qdrant
 from qdrant_client import QdrantClient
+
+from core.embeddings.embedding_model import get_embedding_model
 
 
 class Retriever:
@@ -21,11 +24,13 @@ class Retriever:
         """
         self.model_name = model_name
         self.embedding = get_embedding_model(self.model_name)
-        self.qdrant_path = None
-        self.collection_name = None
-        self.db = None
+        self.qdrant_path: str = "data/vector_stores"
+        self.collection_name: str = "default"
+        self.db: Qdrant | None = None
 
-    def create_vector_store(self, documents: list, collection_name: str = "temp_collection"):
+    def create_vector_store(
+        self, documents: list[dict[str, Any]], collection_name: str = "temp_collection"
+    ):
         """
         Creates a Qdrant vector store from a list of documents.
 
@@ -45,14 +50,10 @@ class Retriever:
                 client = QdrantClient(path="data/vector_stores")
                 client.delete_collection(collection_name)
                 shutil.rmtree(Path("data/vector_stores") / collection_name, ignore_errors=True)
-                import logging
-
                 logging.info("Deleted existing collection '%s'.", collection_name)
 
             except Exception as e:
                 logging.warning("Could not delete collection '%s'. Error: %s", collection_name, e)
-
-        import logging
 
         logging.info(
             "Creating new Qdrant collection '%s' with %d documents using '%s'.",
@@ -62,13 +63,13 @@ class Retriever:
         )
 
         self.collection_name = collection_name
-        self.qdrant_path = Path("data/vector_stores") / collection_name
-        self.qdrant_path.mkdir(parents=True, exist_ok=True)
+        self.qdrant_path = str(Path("data/vector_stores") / collection_name)
+        Path(self.qdrant_path).mkdir(parents=True, exist_ok=True)
 
         self.db = Qdrant.from_documents(
             documents=documents,
             embedding=self.embedding,
-            path=str(self.qdrant_path),
+            path=self.qdrant_path,
             collection_name=self.collection_name,
         )
         return self.db
@@ -85,11 +86,11 @@ class Retriever:
             Qdrant: Loaded vector store instance.
         """
         if qdrant_path:
-            self.qdrant_path = Path(qdrant_path)
+            self.qdrant_path = qdrant_path
         if collection_name:
             self.collection_name = collection_name
 
-        client = QdrantClient(path=str(self.qdrant_path))
+        client = QdrantClient(path=self.qdrant_path)
         self.db = Qdrant(
             client=client, collection_name=self.collection_name, embeddings=self.embedding
         )

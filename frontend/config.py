@@ -23,9 +23,9 @@ PROMPT_TEMPLATES = {
     """,
     "Detailed Research Report": """
     You are a medical science expert and have to write a report on the below papers:
-    
+
     {context}
-    
+
     Write a summary to communicate the research to study participants in a few sentences for each section. Write in lay language at a 6th grade reading level.
 
     Headings for the summary:

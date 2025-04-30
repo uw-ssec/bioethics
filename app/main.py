@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-from app.routers import generate, retrieve
 from fastapi import FastAPI
+
+from app.routers import generate, retrieve
 
 app = FastAPI(title="RAG Application")
 

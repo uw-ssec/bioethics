@@ -1,36 +1,44 @@
 # Bioethics Project
 
-This project provides tools and services for bioethics research and applications. The following instructions explain how to set up and run the project using pixi.
+This project provides tools and services for bioethics research and
+applications. The following instructions explain how to set up and run the
+project using pixi.
 
 ## Prerequisites
 
 Ensure you have the following installed on your system:
+
 - [pixi](https://pixi.sh) package manager
 
 ## Getting Started
 
 1. Clone the repository:
+
    ```bash
    git clone https://github.com/uw-ssec/bioethics.git
    cd bioethics
    ```
 
 2. Install dependencies:
+
    ```bash
    pixi install
    ```
 
 3. Run the Server:
+
    ```bash
    pixi run server
    ```
 
 4. Run the Interface (You might need to run it in another terminal):
+
    ```bash
    pixi run streamlit
    ```
 
 5. Access the services:
+
    - Backend: [http://localhost:8000](http://localhost:8000)
    - Streamlit (Interface): [http://localhost:8501](http://localhost:8501)
 
@@ -38,14 +46,17 @@ Ensure you have the following installed on your system:
 
 ## Customization
 
-- Modify the pixi configuration files to adjust service configurations or dependencies.
+- Modify the pixi configuration files to adjust service configurations or
+  dependencies.
 
 ## Troubleshooting
 
 - Ensure no other services are using ports `8000` or `8501`.
-- If you encounter issues with pixi, refer to the [pixi documentation](https://pixi.sh).
+- If you encounter issues with pixi, refer to the
+  [pixi documentation](https://pixi.sh).
 
-For further assistance, check the project issues section.
+For further assistance, check the
+[project issues section](https://github.com/uw-ssec/bioethics/issues).
 
 ## Open source licensing
 

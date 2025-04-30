@@ -14,7 +14,7 @@ backend = ["backend"]
 cmd = "streamlit run frontend/app.py --server.port 8501 --server.address 0.0.0.0"
 
 [feature.backend.tasks.server]
-cmd = "uvicorn app.main:app --host 0.0.0.0 --port 8000"
+cmd = "KMP_DUPLICATE_LIB_OK=TRUE uvicorn app.main:app --host 0.0.0.0 --port 8000"
 
 [dependencies]
 python = "3.11.*"

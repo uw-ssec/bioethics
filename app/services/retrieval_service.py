@@ -1,10 +1,18 @@
 from __future__ import annotations
 
-from core.retriever.retriever import Retriever
+from typing import Any, TypedDict
+
 from langchain.schema import Document
 
+from core.retriever.retriever import Retriever
 
-def json_to_document(json_data):
+
+class DocumentDict(TypedDict):
+    page_content: str
+    metadata: dict[str, Any]
+
+
+def json_to_document(json_data: DocumentDict) -> Document:
     """Convert JSON dict to LangChain Document object."""
     return Document(page_content=json_data["page_content"], metadata=json_data["metadata"])
 

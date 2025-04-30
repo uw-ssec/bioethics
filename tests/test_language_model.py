@@ -21,7 +21,7 @@ def test_language_model():
     # Initialize model
     try:
         logging.info("🟡 Initializing LanguageModel...")
-        model = LanguageModel(model_name=model_name)
+        model = LanguageModel(model_name=model_name)  # type: ignore[no-untyped-call]
         logging.info("✅ LanguageModel initialized successfully.")
     except Exception as e:
         logging.error(f"❌ Error initializing LanguageModel: {e}")
@@ -39,7 +39,7 @@ def test_language_model():
     # Load Hugging Face pipeline
     try:
         logging.info("🟡 Loading Hugging Face pipeline...")
-        model.load_hg_pipeline()
+        model.load_hg_pipeline()  # type: ignore[no-untyped-call]
         logging.info("✅ Pipeline loaded successfully.")
     except Exception as e:
         logging.error(f"❌ Error loading pipeline: {e}")
@@ -49,11 +49,11 @@ def test_language_model():
     prompt = "Tell me a fun fact about space."
     try:
         logging.info(f"🟡 Running inference on prompt: {prompt}")
-        response = model.inference(prompt)
+        response = model.inference(prompt)  # type: ignore[no-untyped-call]
         logging.info(f"✅ Inference completed successfully.\nResponse: {response}")
     except Exception as e:
         logging.error(f"❌ Error during inference: {e}")
         return
 
 if __name__ == "__main__":
-    test_language_model()
+    test_language_model()  # type: ignore[no-untyped-call]
