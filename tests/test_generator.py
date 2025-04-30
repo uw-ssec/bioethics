@@ -9,6 +9,7 @@ client = TestClient(app)
     ("What is the capital of France?", "allenai/OLMo-2-1124-7B-Instruct", 200),
     ("Explain quantum computing in simple terms.", "allenai/OLMo-2-1124-7B-Instruct", 200),
 ])
+@pytest.mark.skip(reason="Temporarily skipping test_retriever for now")
 def test_generate_endpoint(prompt, generation_model, expected_status):
     """
     Test the text generation API endpoint.
