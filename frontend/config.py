@@ -7,8 +7,7 @@ API_BASE_URL = "http://localhost:8000/api"
 EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L12-v2"
 
 # Generation model
-GENERATION_MODEL = "meta-llama/Llama-3.2-1B-Instruct"
-# GENERATION_MODEL = "allenai/OLMo-2-1124-7B-Instruct"
+GENERATION_MODEL = "llama3.2"
 
 EXISTING_COLLECTION = None
 EXISTING_QDRANT_PATH = None

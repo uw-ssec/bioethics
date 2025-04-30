@@ -35,10 +35,14 @@ if selected_template != "No Template":
     user_template = st.text_area(
         "Customize template", value=PROMPT_TEMPLATES[selected_template], height=250
     )
+    uploaded_files = st.file_uploader(
+        "Attach documents (PDFs)", type=["pdf"], accept_multiple_files=True
+    )
 else:
     # When "No Template" is selected, no text area is shown
     # But we need to define user_template for later use
     user_template = ""
+    uploaded_files = []
 
 # Display chat history
 for message in st.session_state.messages:
@@ -48,11 +52,6 @@ for message in st.session_state.messages:
             st.markdown("### Retrieved Document Chunks:")
             for chunk in message["chunks"]:
                 st.markdown(f"- {chunk}")
-
-# File uploader for documents
-uploaded_files = st.file_uploader(
-    "Attach documents (PDFs)", type=["pdf"], accept_multiple_files=True
-)
 
 
 # Function to process uploaded PDFs
