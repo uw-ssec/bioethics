@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from typing import Any, TypedDict
+from typing import Any
 
 from langchain.schema import Document
+from typing_extensions import TypedDict
 
 from core.retriever.retriever import Retriever
 
@@ -12,19 +13,26 @@ class DocumentDict(TypedDict):
     metadata: dict[str, Any]
 
 
+class RetrievalResult(TypedDict):
+    results: list[dict[str, Any]]
+    status: str
+
+
 def json_to_document(json_data: DocumentDict) -> Document:
     """Convert JSON dict to LangChain Document object."""
     return Document(page_content=json_data["page_content"], metadata=json_data["metadata"])
 
 
-def perform_retrieval(documents, query, existing_collection, existing_qdrant_path, embedding_model):
+def perform_retrieval(
+    documents: list[DocumentDict] | None,
+    query: str,
+    existing_collection: str | None,
+    existing_qdrant_path: str | None,
+    embedding_model: str,
+) -> RetrievalResult:
     # Early return if no retrieval sources available
     if not documents and not (existing_collection and existing_qdrant_path):
-        return {
-            "docs": [],
-            "status_code": 200,
-            "message": "No documents or existing vector store provided for retrieval",
-        }
+        return {"results": [], "status": "success"}
 
     # Instantiate the retriever with the provided embedding model
     retriever = Retriever(model_name=embedding_model)
@@ -46,4 +54,4 @@ def perform_retrieval(documents, query, existing_collection, existing_qdrant_pat
         {"metadata": doc.metadata, "page_content": doc.page_content} for doc in relevant_docs
     ]
 
-    return {"docs": response_data, "status_code": 200}
+    return {"results": response_data, "status": "success"}

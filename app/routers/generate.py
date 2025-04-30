@@ -14,8 +14,8 @@ class GenerationRequest(BaseModel):  # type: ignore[misc]
 
 
 class GenerationResponse(BaseModel):  # type: ignore[misc]
+    answer: str
     status_code: int
-    result: dict[str, object] | None = None
 
 
 @router.post("/generate/", response_model=GenerationResponse)  # type: ignore[misc]
@@ -29,6 +29,8 @@ async def generate(request: GenerationRequest) -> GenerationResponse:
                 detail=result.get("error", "Unknown generation error"),
             )
 
-        return GenerationResponse(status_code=result["status_code"], result=result.get("result"))
+        return GenerationResponse(
+            answer=result.get("answer", ""), status_code=result.get("status_code", 200)
+        )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Generation failed: {e!s}") from e

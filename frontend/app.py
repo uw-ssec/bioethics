@@ -129,7 +129,6 @@ def generate_response(prompt):
         return {"answer": "⚠️ Failed to generate response."}
 
 
-# Process PDFs only if uploaded
 documents = process_uploaded_files(uploaded_files) if uploaded_files else []
 
 # User input for question
@@ -138,22 +137,22 @@ if query := st.chat_input("Your question:"):
     with st.chat_message("user"):
         st.markdown(query)
 
-    with st.spinner("Retrieving relevant documents..."):
-        retrieved_docs = retrieve_response(query, documents).get("docs", [])
-        if not retrieved_docs:  # Handle case where no docs returned
-            retrieved_docs = []
-            retrieved_text = ""
-        else:
-            retrieved_text = "\n\n".join(doc["page_content"] for doc in retrieved_docs)
+    retrieved_docs = []
+    retrieved_text = ""
 
-    # Show retrieved documents immediately
-    if retrieved_docs:
-        with st.chat_message("assistant"):
-            st.markdown("### Retrieved Document Chunks:")
-            for doc in retrieved_docs:
-                st.markdown(f"- {doc['page_content'][:500]}")
+    if documents or EXISTING_COLLECTION or EXISTING_QDRANT_PATH:
+        with st.spinner("Retrieving relevant documents..."):
+            retrieved_docs = retrieve_response(query, documents).get("docs", [])
+            retrieved_text = "\n\n".join(
+                doc["page_content"] for doc in retrieved_docs if doc.get("page_content")
+            )
 
-    # Generate response using retrieved documents as context
+        if retrieved_docs:
+            with st.chat_message("assistant"):
+                st.markdown("### Retrieved Document Chunks:")
+                for doc in retrieved_docs:
+                    st.markdown(f"- {doc['page_content'][:500]}")
+
     with st.spinner("Generating response..."):
         if selected_template == "No Template":
             # If "No Template" is selected, use just the query
@@ -168,7 +167,6 @@ if query := st.chat_input("Your question:"):
             st.error("⚠️ Unable to generate a response. Please try again later.")
             generated_answer = "⚠️ Failed to generate response."
 
-    # Display AI-generated response
     assistant_message = {
         "role": "assistant",
         "content": generated_answer,
