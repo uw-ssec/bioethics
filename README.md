@@ -1,49 +1,96 @@
-# python-project-template
+# Bioethics Project
 
-<span><img src="https://img.shields.io/badge/SSEC-Project-purple?logo=data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA0AAAAOCAQAAABedl5ZAAAACXBIWXMAAAHKAAABygHMtnUxAAAAGXRFWHRTb2Z0d2FyZQB3d3cuaW5rc2NhcGUub3Jnm+48GgAAAMNJREFUGBltwcEqwwEcAOAfc1F2sNsOTqSlNUopSv5jW1YzHHYY/6YtLa1Jy4mbl3Bz8QIeyKM4fMaUxr4vZnEpjWnmLMSYCysxTcddhF25+EvJia5hhCudULAePyRalvUteXIfBgYxJufRuaKuprKsbDjVUrUj40FNQ11PTzEmrCmrevPhRcVQai8m1PRVvOPZgX2JttWYsGhD3atbHWcyUqX4oqDtJkJiJHUYv+R1JbaNHJmP/+Q1HLu2GbNoSm3Ft0+Y1YMdPSTSwQAAAABJRU5ErkJggg==&style=plastic" /><span>
-![BSD License](https://badgen.net/badge/license/BSD-3-Clause/blue)
-[![Hatch project](https://img.shields.io/badge/%F0%9F%A5%9A-Hatch-4051b5.svg)](https://github.com/pypa/hatch)
-[![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
+This project provides tools and services for bioethics research and
+applications. The following instructions explain how to set up and run the
+project using pixi.
 
-[![Documentation Status](https://readthedocs.org/projects/ssec-python-project-template/badge/?version=latest)](https://ssec-python-project-template.readthedocs.io/en/latest/?badge=latest)
-[![pre-commit.ci status](https://results.pre-commit.ci/badge/github/uw-ssec/python-project-template/main.svg)](https://results.pre-commit.ci/latest/github/uw-ssec/python-project-template/main)
-[![CI](https://github.com/uw-ssec/python-project-template/actions/workflows/ci.yml/badge.svg)](https://github.com/uw-ssec/python-project-template/actions/workflows/ci.yml)
-[![codecov](https://codecov.io/gh/uw-ssec/python-project-template/graph/badge.svg?token=13LYMLQBZL)](https://codecov.io/gh/uw-ssec/python-project-template)
+## Prerequisites
 
-Python project repository template for developing python package. This template
-includes a basic structure for developing a python package, including a license,
-documentation, testing, and continuous integration. It is based on the
-[Scientific Python Library Development Guide and Cookiecutter](https://github.com/scientific-python/cookie).
+Ensure you have the following installed on your system:
 
-This repository contains a template for developing a python project. To start,
-click on the green
-[Use this template](https://github.com/uw-ssec/python-project-template/generate)
-in the top right. This will allow you to create a new project using this base
-template.
+- [pixi](https://pixi.sh) package manager
+- [Ollama](https://ollama.com) for running LLMs locally
 
-## What's included
+## Setting up Ollama
 
-This template contains the following:
+1. Install Ollama from [ollama.com](https://ollama.com)
 
-1. Python package setup files for building python package to a distribution. See
-   [PyPA packaging user guide](https://packaging.python.org/en/latest/) for more
-   info.
-2. Basic license file (currently BSD 3-Clause License, but can be modified to
-   specific project). See [choose a license](https://choosealicense.com/) for
-   more licenses.
-3. Starter [Jupyter Book](https://jupyterbook.org) based documentation
-   structure.
-4. Single test example to demonstrate the use of
-   [pytest](https://docs.pytest.org/en/7.2.x/).
-5. [GitHub workflow](https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions)
-   config to run tests.
-6. [Pre-commit](https://pre-commit.com/) config to enable code style checks
-   before committing.
-7. [Read The Docs](https://readthedocs.org/) config to enable free hosting of
-   documentation.
-8. Code coverage analysis with
-   [`coverage.py`](https://coverage.readthedocs.io/en/7.2.3/) via
-   [`pytest-cov`](https://pytest-cov.readthedocs.io/en/latest/).
+2. Pull the default language model:
+
+   ```bash
+   ollama pull llama3.2
+   ```
+
+   Note: The default model is specified in `frontend/config.py` as
+   `GENERATION_MODEL = "llama3.2"`. If you wish to use a different model, modify
+   this setting and pull that model instead.
+
+## Getting Started
+
+1. Clone the repository:
+
+   ```bash
+   git clone https://github.com/uw-ssec/bioethics.git
+   cd bioethics
+   ```
+
+2. Install dependencies:
+
+   ```bash
+   pixi install
+   ```
+
+3. Run the Server:
+
+   ```bash
+   pixi run server
+   ```
+
+4. Run the Interface (You might need to run it in another terminal):
+
+   ```bash
+   pixi run streamlit
+   ```
+
+5. Access the services:
+
+   - Backend: [http://localhost:8000](http://localhost:8000)
+   - Streamlit (Interface): [http://localhost:8501](http://localhost:8501)
+
+6. To stop the services, press `Ctrl+C` in the terminal.
+
+## Customization
+
+- To change the language model:
+
+  1. Edit `frontend/config.py` and modify the `GENERATION_MODEL` variable
+  2. Pull the new model using `ollama pull YOUR_NEW_MODEL_NAME`
+  3. Restart the services
+
+- To customize prompt templates:
+
+  1. Open `frontend/config.py`
+  2. Modify the `PROMPT_TEMPLATES` dictionary to edit existing templates or add
+     new ones
+  3. Each template should include `{context}` and `{question}` placeholders that
+     will be replaced with retrieved content and user questions
+  4. After saving changes, restart the streamlit interface (pixi run streamlit)
+     to see the updated templates
+
+- Modify the pixi configuration files to adjust service configurations or
+  dependencies.
+
+## Troubleshooting
+
+- Ensure no other services are using ports `8000` or `8501`.
+- If you encounter issues with pixi, refer to the
+  [pixi documentation](https://pixi.sh).
+- For Ollama issues, check the
+  [Ollama documentation](https://github.com/ollama/ollama/blob/main/README.md).
+- Verify Ollama is running with `ollama list` to see available models.
+
+For further assistance, check the
+[project issues section](https://github.com/uw-ssec/bioethics/issues).
 
 ## Open source licensing
 

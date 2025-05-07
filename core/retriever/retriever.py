@@ -1,11 +1,18 @@
+from __future__ import annotations
+
+import logging
+import shutil
 from pathlib import Path
+from typing import Any
+
 from langchain_qdrant import Qdrant
 from qdrant_client import QdrantClient
+
 from core.embeddings.embedding_model import get_embedding_model
-import shutil
+
 
 class Retriever:
-    def __init__(self, model_name: str = None, qdrant_path: str = None, collection_name: str = None):
+    def __init__(self, model_name: str | None = None):
         """
         Initializes the Retriever class with a model, Qdrant path, and collection name.
 
@@ -17,11 +24,13 @@ class Retriever:
         """
         self.model_name = model_name
         self.embedding = get_embedding_model(self.model_name)
-        self.qdrant_path = None
-        self.collection_name = None
-        self.db = None
+        self.qdrant_path: str = "data/vector_stores"
+        self.collection_name: str = "default"
+        self.db: Qdrant | None = None
 
-    def create_vector_store(self, documents: list, collection_name: str = 'temp_collection'):    
+    def create_vector_store(
+        self, documents: list[dict[str, Any]], collection_name: str = "temp_collection"
+    ):
         """
         Creates a Qdrant vector store from a list of documents.
 
@@ -32,34 +41,40 @@ class Retriever:
             Qdrant: Initialized vector store instance.
         """
         if not documents:
-            raise ValueError("No documents provided for vector store creation.")
+            error_message = "No documents provided for vector store creation."
+            raise ValueError(error_message)
 
         # Delete temp_collection before recreating
         if collection_name == "temp_collection":
             try:
-                client = QdrantClient(path="data/vector_stores") 
+                client = QdrantClient(path="data/vector_stores")
                 client.delete_collection(collection_name)
                 shutil.rmtree(Path("data/vector_stores") / collection_name, ignore_errors=True)
-                print(f"Deleted existing collection '{collection_name}'.")
+                logging.info("Deleted existing collection '%s'.", collection_name)
 
             except Exception as e:
-                print(f"Warning: Could not delete collection '{collection_name}'. Error: {str(e)}")
+                logging.warning("Could not delete collection '%s'. Error: %s", collection_name, e)
 
-        print(f"Creating new Qdrant collection '{collection_name}' with {len(documents)} documents using '{self.model_name}'.")
+        logging.info(
+            "Creating new Qdrant collection '%s' with %d documents using '%s'.",
+            collection_name,
+            len(documents),
+            self.model_name,
+        )
 
         self.collection_name = collection_name
-        self.qdrant_path = Path("data/vector_stores") / collection_name
-        self.qdrant_path.mkdir(parents=True, exist_ok=True)
+        self.qdrant_path = str(Path("data/vector_stores") / collection_name)
+        Path(self.qdrant_path).mkdir(parents=True, exist_ok=True)
 
         self.db = Qdrant.from_documents(
             documents=documents,
             embedding=self.embedding,
-            path=str(self.qdrant_path),
+            path=self.qdrant_path,
             collection_name=self.collection_name,
         )
         return self.db
 
-    def get_vector_store(self, qdrant_path: str = None, collection_name: str = None):
+    def get_vector_store(self, qdrant_path: str | None = None, collection_name: str | None = None):
         """
         Loads an existing Qdrant vector store.
 
@@ -71,12 +86,14 @@ class Retriever:
             Qdrant: Loaded vector store instance.
         """
         if qdrant_path:
-            self.qdrant_path = Path(qdrant_path) 
-        if collection_name:    
+            self.qdrant_path = qdrant_path
+        if collection_name:
             self.collection_name = collection_name
 
-        client = QdrantClient(path=str(self.qdrant_path))
-        self.db = Qdrant(client=client, collection_name=self.collection_name, embeddings=self.embedding)
+        client = QdrantClient(path=self.qdrant_path)
+        self.db = Qdrant(
+            client=client, collection_name=self.collection_name, embeddings=self.embedding
+        )
         return self.db
 
     def retrieve_docs(self, query: str):
@@ -90,11 +107,11 @@ class Retriever:
             list: List of retrieved document objects.
         """
         if self.db is None:
-            raise ValueError("Vector store is not initialized. Call create_vector_store() or get_vector_store() first.")
+            error_message = "Vector store is not initialized. Call create_vector_store() or get_vector_store() first."
+            raise ValueError(error_message)
 
         retriever = self.db.as_retriever(
             search_type="mmr",
             search_kwargs={"k": 2},
         )
         return retriever.invoke(query)
-
