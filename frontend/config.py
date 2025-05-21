@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from docx.shared import RGBColor
+
 # API Base URL
 API_BASE_URL = "http://localhost:8000/api"
 
@@ -11,6 +13,22 @@ GENERATION_MODEL = "llama3.2"
 
 EXISTING_COLLECTION = None
 EXISTING_QDRANT_PATH = None
+
+# Text processing parameters
+CHUNK_SIZE = 1200
+CHUNK_OVERLAP = 120
+
+# Docx styling
+UW_PURPLE = RGBColor.from_string("4B2E83")
+
+# Keywords to filter out pages/chunks
+filter_keywords = [
+    "references",
+    "acknowledgements",
+    "author contributions",
+    "bibliography",
+    "funding",
+]
 
 PROMPT_TEMPLATES = {
     "Research Summary": """

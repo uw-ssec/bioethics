@@ -10,30 +10,25 @@ import urllib3
 from bs4 import BeautifulSoup
 from config import (
     API_BASE_URL,
+    CHUNK_OVERLAP,
+    CHUNK_SIZE,
     EMBEDDING_MODEL,
     EXISTING_COLLECTION,
     EXISTING_QDRANT_PATH,
     GENERATION_MODEL,
     PROMPT_TEMPLATES,
+    UW_PURPLE,
+    filter_keywords,
 )
 from docx import Document
+from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.shared import Inches, Pt
 from langchain.document_loaders import PyMuPDFLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-CHUNK_SIZE = 1200
-CHUNK_OVERLAP = 120
-
 text_splitter = RecursiveCharacterTextSplitter(chunk_size=CHUNK_SIZE, chunk_overlap=CHUNK_OVERLAP)
-
-filter_keywords = [
-    "references",
-    "acknowledgements",
-    "author contributions",
-    "bibliography",
-    "funding",
-]
 
 # Initialize session state for messages if not exists
 if "messages" not in st.session_state:
@@ -185,12 +180,52 @@ def markdown_to_docx_via_html(markdown_content: str, filename: str = "output.doc
 
     # Parse HTML and add content to a Word document
     doc = Document()
+
+    # Add header with UW logo and text
+    header = doc.sections[0].header
+    header.is_linked_to_previous = False  # Ensure header is unique for this section
+    # Clear any existing content in the header (e.g., default paragraph)
+    for p in header.paragraphs:
+        p.clear()
+    for t in header.tables:
+        # This is a bit of a hack as there's no direct table removal API
+        # We access the underlying XML element and remove it.
+        header._element.remove(t._element)
+
+    htable = header.add_table(rows=1, cols=2, width=Inches(6))
+
+    # Left cell
+    left_cell = htable.cell(0, 0)
+    left_paragraph = left_cell.paragraphs[0] if left_cell.paragraphs else left_cell.add_paragraph()
+    run = left_paragraph.add_run()
+    run.add_picture("frontend/uw_logo.png", width=Inches(0.75))
+    left_paragraph.alignment = WD_ALIGN_PARAGRAPH.LEFT
+
+    # Right cell
+    right_cell = htable.cell(0, 1)
+    right_paragraph = (
+        right_cell.paragraphs[0] if right_cell.paragraphs else right_cell.add_paragraph()
+    )
+    run = right_paragraph.add_run("University of Washington")
+    run.font.name = "Arial"
+    run.font.size = Pt(10)
+    right_paragraph.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+
     soup = BeautifulSoup(html_content, "html.parser")
     for element in soup.descendants:
         if element.name == "p":
-            doc.add_paragraph(element.get_text())
-        elif element.name in ["h1", "h2", "h3", "h4", "h5", "h6"]:
-            doc.add_heading(element.get_text(), level=int(element.name[1]))
+            children = list(element.children)
+            if (
+                len(children) == 1
+                and children[0].name == "strong"
+                and element.get_text(strip=True) == children[0].get_text(strip=True)
+            ):
+                heading = doc.add_heading(element.get_text(strip=True), level=3)
+                for run_item in heading.runs:
+                    run_item.font.color.rgb = UW_PURPLE
+                    run_item.font.name = "Arial"
+            else:
+                doc.add_paragraph(element.get_text())
         elif element.name == "li":
             doc.add_paragraph(element.get_text(), style="List Bullet")
         elif element.name == "table":
