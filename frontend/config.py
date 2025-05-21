@@ -14,15 +14,15 @@ EXISTING_QDRANT_PATH = None
 
 PROMPT_TEMPLATES = {
     "Research Summary": """
-    You are a medical science expert. Summarize the below papers using a few sentences or bullet points in lay language at a 6th grade reading level, while answering the given question:
+    You are a medical science expert. Summarize the below papers using a few sentences or bullet points in lay language at a 6th grade reading level. Focus on the main findings and significance for a general audience.
 
+    Below is the research content to summarize:
     {context}
-
-    Question: {question}
     """,
     "Detailed Research Report": """
-    You are a medical science expert and have to write a report on the below papers:
+    You are a medical science expert and have to write a report on the below papers.
 
+    Below is the research content to analyze:
     {context}
 
     Write a summary to communicate the research to study participants in a few sentences for each section. Write in lay language at a 6th grade reading level.
@@ -34,12 +34,11 @@ PROMPT_TEMPLATES = {
     - What was new and innovative about the studies?
     - What do the findings mean?
     - What's next?
-
-    Question: {question}
     """,
     "Technical Analysis": """
-    As a medical researcher, provide a detailed technical analysis of the following papers, focusing on methodology and results:
+    As a medical researcher, provide a detailed technical analysis of the following papers, focusing on methodology and results.
 
+    Below is the research content to analyze:
     {context}
 
     Specific aspects to address:
@@ -48,12 +47,11 @@ PROMPT_TEMPLATES = {
     3. Key findings
     4. Limitations
     5. Future research directions
-
-    Question: {question}
     """,
     "Patient Communication": """
-    As a healthcare provider, explain the following research in simple terms that patients can understand:
+    As a healthcare provider, explain the following research in simple terms that patients can understand.
 
+    Below is the research content to explain:
     {context}
 
     Please cover:
@@ -61,12 +59,11 @@ PROMPT_TEMPLATES = {
     - Practical implications
     - What patients should know
     - Next steps
-
-    Question: {question}
     """,
     "Policy Brief": """
-    Synthesize the following research into a policy brief format:
+    Synthesize the following research into a policy brief format.
 
+    Below is the research content to synthesize:
     {context}
 
     Structure:
@@ -75,7 +72,5 @@ PROMPT_TEMPLATES = {
     3. Policy Implications
     4. Recommendations
     5. Implementation Considerations
-
-    Question: {question}
     """,
 }
