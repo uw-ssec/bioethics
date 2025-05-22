@@ -1,104 +1,24 @@
 from __future__ import annotations
 
-import re
 from pathlib import Path
+from typing import Any
 
-import markdown2
-import requests
-import streamlit as st  # type: ignore[import]
-import urllib3
-from bs4 import BeautifulSoup
+import requests  # type: ignore[import-untyped]
+import streamlit as st
 from config import (
     API_BASE_URL,
-    CHUNK_OVERLAP,
     CHUNK_SIZE,
     EMBEDDING_MODEL,
     EXISTING_COLLECTION,
     EXISTING_QDRANT_PATH,
     GENERATION_MODEL,
     PROMPT_TEMPLATES,
-    UW_PURPLE,
-    filter_keywords,
 )
-from docx import Document
-from docx.enum.text import WD_ALIGN_PARAGRAPH
-from docx.shared import Inches, Pt
-from langchain.document_loaders import PyMuPDFLoader
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-
-text_splitter = RecursiveCharacterTextSplitter(chunk_size=CHUNK_SIZE, chunk_overlap=CHUNK_OVERLAP)
-
-# Initialize session state for messages if not exists
-if "messages" not in st.session_state:
-    st.session_state.messages = []
-
-st.title("Bioethics RAG Chatbot")
-
-template_options = ["No Template", *list(PROMPT_TEMPLATES.keys())]
-selected_template = st.selectbox("Choose a prompt template", template_options, index=0)
+from util.docx_utils import save_to_docx
+from util.uploader_utils import process_uploaded_files
 
 
-def is_noise_chunk(chunk: str) -> bool:
-    noise_patterns = [
-        r"^\s*©",
-        r"copyright",
-        r"ceur workshop",
-        r"issn",
-        r"arxiv",
-        r"http[s]?://",
-        r"license",
-        r"all rights reserved",
-    ]
-    chunk_lower = chunk.lower()
-    return any(re.search(pat, chunk_lower) for pat in noise_patterns)
-
-
-def process_uploaded_files(uploaded_files):
-    """Reads uploaded PDF files and extracts text + metadata."""
-    documents = []
-
-    for file in uploaded_files:
-        with Path(file.name).open("wb") as f:
-            f.write(file.getbuffer())
-        loader = PyMuPDFLoader(file.name)  # Load PDF
-        pages = loader.load()
-
-        for page in pages:
-            page_content_lower = page.page_content.lower()
-            skip_page = False
-            for keyword in filter_keywords:
-                if (
-                    keyword in page_content_lower
-                    and (
-                        page.page_content.count(keyword) > 1
-                        or any(
-                            line.strip().lower().startswith(keyword)
-                            for line in page.page_content.split("\n")
-                        )
-                    )
-                    and re.search(
-                        r"^\s*(" + keyword + r")\s*$\n",
-                        page.page_content,
-                        re.IGNORECASE | re.MULTILINE,
-                    )
-                ):
-                    skip_page = True
-                    break
-            if skip_page:
-                continue
-
-            chunks = text_splitter.split_text(page.page_content)
-            for i, chunk in enumerate(chunks):
-                if is_noise_chunk(chunk):
-                    continue
-                documents.append({"page_content": chunk, "metadata": {**page.metadata, "chunk": i}})
-
-    return documents
-
-
-def retrieve_response(query, documents):
+def retrieve_response(query: str, documents: list[dict[str, Any]]) -> dict[str, Any]:
     """
     Calls the backend retrieval API to fetch relevant documents based on the query.
 
@@ -123,13 +43,13 @@ def retrieve_response(query, documents):
             },
         )
         response.raise_for_status()
-        return response.json()
+        return response.json()  # type: ignore[no-any-return]
     except requests.RequestException as e:
         st.error(f"❌ Retrieval API failed: {e!s}")
         return {"docs": []}
 
 
-def generate_response(prompt):
+def generate_response(prompt: str) -> dict[str, Any]:
     """
     Calls the backend generation API to produce a generated answer to the prompt.
 
@@ -148,203 +68,93 @@ def generate_response(prompt):
             json={"prompt": prompt, "generation_model": GENERATION_MODEL},
         )
         response.raise_for_status()
-        return response.json()
+        return response.json()  # type: ignore[no-any-return]
     except requests.RequestException as e:
         st.error(f"❌ Generation API failed: {e!s}")
         return {"answer": "⚠️ Failed to generate response."}
 
 
-def save_to_docx(content: str, filename: str = "output.docx"):
-    """
-    Saves the generated content to a .docx file.
+def handle_submit_button(
+    query: str, documents: list[dict[str, Any]], selected_template: str
+) -> None:
+    retrieved_docs = []
+    retrieved_text = ""
 
-    Parameters:
-        content (str): The text content to save.
-        filename (str): The name of the .docx file.
-    """
-    doc = Document()
-    doc.add_paragraph(content)
-    doc.save(filename)
+    if documents or EXISTING_COLLECTION or EXISTING_QDRANT_PATH:
+        with st.spinner("Retrieving relevant documents..."):
+            retrieved_docs = retrieve_response(query, documents).get("docs", [])
+            retrieved_text = "\n\n".join(
+                doc["page_content"] for doc in retrieved_docs if doc.get("page_content")
+            )
+        if retrieved_docs:
+            with st.chat_message("assistant"):
+                st.markdown("### Retrieved Document Chunks:")
+                for doc in retrieved_docs:
+                    st.markdown(f"- {doc['page_content'][:CHUNK_SIZE]}")
+
+    with st.spinner("Generating response..."):
+        formatted_prompt = PROMPT_TEMPLATES[selected_template].format(
+            query=query, context=retrieved_text
+        )
+        generate_response_data = generate_response(formatted_prompt)
+
+        if "answer" in generate_response_data:
+            generated_answer = generate_response_data["answer"]
+            save_to_docx(generated_answer, filename="generated_output.docx")
+            with Path("generated_output.docx").open("rb") as f:
+                docx_bytes = f.read()
+            st.download_button(
+                label="Download .docx",
+                data=docx_bytes,
+                file_name="generated_output.docx",
+                mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            )
+        else:
+            st.error("⚠️ Unable to generate a response. Please try again later.")
+            generated_answer = "⚠️ Failed to generate response."
+
+    assistant_message = {
+        "role": "assistant",
+        "content": generated_answer,
+    }
+    st.session_state.messages.append(assistant_message)
+    with st.chat_message("assistant"):
+        st.markdown(generated_answer)
 
 
-def markdown_to_docx_via_html(markdown_content: str, filename: str = "output.docx"):
-    """
-    Converts Markdown content to a .docx file via HTML.
+###
+# START OF THE STREAMLIT LAYOUT
+###
+if "messages" not in st.session_state:
+    st.session_state.messages = []
 
-    Parameters:
-        markdown_content (str): The Markdown content to convert.
-        filename (str): The name of the .docx file.
-    """
-    # Convert Markdown to HTML
-    html_content = markdown2.markdown(markdown_content)
+st.title("Bioethics RAG Chatbot")
 
-    # Parse HTML and add content to a Word document
-    doc = Document()
+selected_template = st.selectbox(
+    "Choose a prompt template", [*list(PROMPT_TEMPLATES.keys())], index=0
+)
 
-    # Add header with UW logo and text
-    header = doc.sections[0].header
-    header.is_linked_to_previous = False  # Ensure header is unique for this section
-    # Clear any existing content in the header (e.g., default paragraph)
-    for p in header.paragraphs:
-        p.clear()
-    for t in header.tables:
-        # This is a bit of a hack as there's no direct table removal API
-        # We access the underlying XML element and remove it.
-        header._element.remove(t._element)
-
-    htable = header.add_table(rows=1, cols=2, width=Inches(6))
-
-    # Left cell
-    left_cell = htable.cell(0, 0)
-    left_paragraph = left_cell.paragraphs[0] if left_cell.paragraphs else left_cell.add_paragraph()
-    run = left_paragraph.add_run()
-    run.add_picture("frontend/uw_logo.png", width=Inches(0.75))
-    left_paragraph.alignment = WD_ALIGN_PARAGRAPH.LEFT
-
-    # Right cell
-    right_cell = htable.cell(0, 1)
-    right_paragraph = (
-        right_cell.paragraphs[0] if right_cell.paragraphs else right_cell.add_paragraph()
+# Users can only customize the template if they select templates other than "No Template"
+if selected_template != "No Template":
+    user_template = st.text_area(
+        "Customize template", value=PROMPT_TEMPLATES[selected_template], height=250
     )
-    run = right_paragraph.add_run("University of Washington")
-    run.font.name = "Arial"
-    run.font.size = Pt(10)
-    right_paragraph.alignment = WD_ALIGN_PARAGRAPH.RIGHT
 
-    soup = BeautifulSoup(html_content, "html.parser")
-    for element in soup.descendants:
-        if element.name == "p":
-            children = list(element.children)
-            if (
-                len(children) == 1
-                and children[0].name == "strong"
-                and element.get_text(strip=True) == children[0].get_text(strip=True)
-            ):
-                heading = doc.add_heading(element.get_text(strip=True), level=3)
-                for run_item in heading.runs:
-                    run_item.font.color.rgb = UW_PURPLE
-                    run_item.font.name = "Arial"
-            else:
-                doc.add_paragraph(element.get_text())
-        elif element.name == "li":
-            doc.add_paragraph(element.get_text(), style="List Bullet")
-        elif element.name == "table":
-            # Handle tables
-            table = doc.add_table(rows=0, cols=0)
-            for row in element.find_all("tr"):
-                cells = row.find_all(["td", "th"])
-                doc_row = table.add_row()
-                for i, cell in enumerate(cells):
-                    if len(doc_row.cells) <= i:
-                        table.add_column()
-                    doc_row.cells[i].text = cell.get_text()
-
-    # Save the document
-    doc.save(filename)
-
+uploaded_files = st.file_uploader(
+    "Attach documents (PDFs)", type=["pdf"], accept_multiple_files=True
+)
+documents = process_uploaded_files(uploaded_files) if uploaded_files else []
 
 if selected_template == "No Template":
-    uploaded_files = st.file_uploader(
-        "Attach documents (PDFs)", type=["pdf"], accept_multiple_files=True
-    )
-    documents = process_uploaded_files(uploaded_files) if uploaded_files else []
+    # if "No Template" is selected, provide a chat input for the user to ask a question
     if query := st.chat_input("Your question:"):
         st.session_state.messages.append({"role": "user", "content": query})
         with st.chat_message("user"):
             st.markdown(query)
-        retrieved_docs = []
-        retrieved_text = ""
-        if documents or EXISTING_COLLECTION or EXISTING_QDRANT_PATH:
-            with st.spinner("Retrieving relevant documents..."):
-                retrieved_docs = retrieve_response(query, documents).get("docs", [])
-                retrieved_text = "\n\n".join(
-                    doc["page_content"] for doc in retrieved_docs if doc.get("page_content")
-                )
-            if retrieved_docs:
-                with st.chat_message("assistant"):
-                    st.markdown("### Retrieved Document Chunks:")
-                    for doc in retrieved_docs:
-                        st.markdown(f"- {doc['page_content'][:500]}")
-        with st.spinner("Generating response..."):
-            implicit_template = "Context:\n{context}\n\nQuestion: {question}"
-            formatted_prompt = implicit_template.format(context=retrieved_text, question=query)
-            generate_response_data = generate_response(formatted_prompt)
-            if "answer" in generate_response_data:
-                generated_answer = generate_response_data["answer"]
-                markdown_to_docx_via_html(generated_answer, filename="generated_output.docx")
-                st.success("✅ Response saved as 'generated_output.docx'")
-                with Path("generated_output.docx").open("rb") as f:
-                    docx_bytes = f.read()
-                st.download_button(
-                    label="Download .docx",
-                    data=docx_bytes,
-                    file_name="generated_output.docx",
-                    mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                )
-            else:
-                st.error("⚠️ Unable to generate a response. Please try again later.")
-                generated_answer = "⚠️ Failed to generate response."
-        assistant_message = {
-            "role": "assistant",
-            "content": generated_answer,
-            "chunks": [doc["page_content"][:500] for doc in retrieved_docs],
-        }
-        st.session_state.messages.append(assistant_message)
-        with st.chat_message("assistant"):
-            st.markdown(generated_answer)
-else:
-    user_template = st.text_area(
-        "Customize template", value=PROMPT_TEMPLATES[selected_template], height=250
-    )
-    uploaded_files = st.file_uploader(
-        "Attach documents (PDFs)", type=["pdf"], accept_multiple_files=True
-    )
-    documents = process_uploaded_files(uploaded_files) if uploaded_files else []
-    if st.button("Generate Summary/Report"):
-        st.session_state.messages.append(
-            {
-                "role": "user",
-                "content": f"[{selected_template}] Generate summary/report for uploaded documents.",
-            }
-        )
-        with st.chat_message("user"):
-            st.markdown(f"[{selected_template}] Generate summary/report for uploaded documents.")
-        retrieved_docs = []
-        retrieved_text = ""
-        if documents or EXISTING_COLLECTION or EXISTING_QDRANT_PATH:
-            with st.spinner("Retrieving relevant documents..."):
-                retrieved_docs = retrieve_response("", documents).get("docs", [])
-                retrieved_text = "\n\n".join(
-                    doc["page_content"] for doc in retrieved_docs if doc.get("page_content")
-                )
-            if retrieved_docs:
-                with st.chat_message("assistant"):
-                    st.markdown("### Retrieved Document Chunks:")
-                    for doc in retrieved_docs:
-                        st.markdown(f"- {doc['page_content'][:500]}")
-        with st.spinner("Generating response..."):
-            formatted_prompt = user_template.format(context=retrieved_text)
-            generate_response_data = generate_response(formatted_prompt)
-            if "answer" in generate_response_data:
-                generated_answer = generate_response_data["answer"]
-                markdown_to_docx_via_html(generated_answer, filename="generated_output.docx")
-                st.success("✅ Response saved as 'generated_output.docx'")
-                with Path("generated_output.docx").open("rb") as f:
-                    docx_bytes = f.read()
-                st.download_button(
-                    label="Download .docx",
-                    data=docx_bytes,
-                    file_name="generated_output.docx",
-                    mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                )
-            else:
-                st.error("⚠️ Unable to generate a response. Please try again later.")
-                generated_answer = "⚠️ Failed to generate response."
-        assistant_message = {
-            "role": "assistant",
-            "content": generated_answer,
-            "chunks": [doc["page_content"][:500] for doc in retrieved_docs],
-        }
-        st.session_state.messages.append(assistant_message)
-        with st.chat_message("assistant"):
-            st.markdown(generated_answer)
+        handle_submit_button(query, documents, selected_template)
+# Otherwise, provide a button to generate a summary/report
+elif st.button("Generate Summary/Report"):
+    handle_submit_button("", documents, selected_template)
+###
+# END OF THE STREAMLIT LAYOUT
+###

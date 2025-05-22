@@ -31,8 +31,12 @@ filter_keywords = [
 ]
 
 PROMPT_TEMPLATES = {
+    "No Template": """
+    Context:\n{context}\n\nQuestion: {query}
+    """,
     "Research Summary": """
     You are a medical science expert. Summarize the below papers using a few sentences or bullet points in lay language at a 6th grade reading level. Focus on the main findings and significance for a general audience.
+    Directly provide the summary without any introductory phrases or preambles.
 
     Below is the research content to summarize:
     {context}
