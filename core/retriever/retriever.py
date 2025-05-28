@@ -112,6 +112,6 @@ class Retriever:
 
         retriever = self.db.as_retriever(
             search_type="mmr",
-            search_kwargs={"k": 2},
+            search_kwargs={"k": 5},
         )
         return retriever.invoke(query)
